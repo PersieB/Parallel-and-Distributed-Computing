@@ -25,7 +25,7 @@ should include but not limited to:
 Comment on what applications and problems in Ghana such machines can used for and challenges
 and limitations in Ghana that one would encounter in operating such machines.
 
-NB: The report can be found in the documentation branch section of the repository. It is also included in this folder (lab1) for easy access.
+NB: The report can be found in the documentation branch section of the repository called 'reports'. It is also included in this folder (lab1) for easy access.
 
 # Part 2
 Task:
