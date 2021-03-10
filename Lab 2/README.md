@@ -31,11 +31,29 @@ In this algorithm, threads are generated for each diagonal elements. For each di
 the corresponding row elements to the right and the column elements below are interchanged by the threads assigned to the position.
 
 ## CLONING AND RUNNING
-Clone the repository using "git clone repository https://github.com/PersieB/Parallel-and-Distributed-Computing.git"
-Navigate to the Lab2 folder in your unix environment.
-To compile the program type:
-gcc -o Transpose Transpose.c -fopenmp -lgomp
+Clone the repository using `git clone repository https://github.com/PersieB/Parallel-and-Distributed-Computing.git` in a folder
 
-To run, type:
-./Transpose
+# Repository Branches
+The github repository has 2 branches, namely "master" and "documentation".
+
+# Master branch
+The master branch contains the Lab 2 (or any lab) folder that should be cloned to access the source codes. 
+NB: A README.md is also attached in each lab folder.
+
+# Documentation branch
+The documentation branch contains the report for each lab.
+
+# Accessing source code
+Since the main branch is the default, you can simply to the Lab folder in your unix environment.
+
+# Accessing report from documentation branch
+Simply use `git checkout documentation` to move from the master to the documentation branch in your terminal.
+The folder will be updated and show only the reports. To switch back to master branch, use the `git checkout master`.
+The folder will be updated to reflect only files in the master branch i.e lab folders containing source codes.
+
+# HEAR FROM YOU
+Kindly feel free to reach out with any feedback. Thank you!
+
+
+
 
