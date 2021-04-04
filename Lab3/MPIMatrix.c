@@ -12,7 +12,7 @@
 #include <math.h>
 #include <time.h>
 
-#define dim 4     /* dimensions of the matrixes */
+#define dim 4   /* dimensions of the matrixes */
 #define master 0            
 #define master_message 1    // Tag that will be put on the messages from the master process carrying parts of the matrices   
 #define slave_message 2        // Tag that will be put on the messages from the worker processes carrying results.
@@ -41,7 +41,7 @@ struct start_location {
 
 
 /*
-    Creates a matrix dynammically. The matrices are created in a manner that ensures that the biggest value in a matrix is always 100.
+    Creates a matrix dynammically.
 */
 
 int **matrixMemory(int size){
@@ -92,7 +92,7 @@ void print_matrix(int **mat, int dimension, char name){
 }
 
 /*
-    Allocates memory for an array. Could also work for two-dimensional arrays that are not square matrices. 
+    Allocates memory for an array.  
     The user has to specify the rows and the columns.
 */
 int **allocarray(int r, int c) {
@@ -104,8 +104,7 @@ int **allocarray(int r, int c) {
 }
 
 /*
-    This function takes in a matrix, and indices for columns, and returns a slice of the matrix.
-    The indices are used in an inclusive manner. In other words, this function returns a continuous set of columns.
+    This function takes in a matrix, and indices for columns, and returns a slice of the matrix and returns a set of columns.
 */
 int ** slice_cols(int **A, int dimension, int start, int end){
     // Creating the matrix to be returned.
@@ -124,7 +123,6 @@ int ** slice_cols(int **A, int dimension, int start, int end){
 }
 
 /* This function multiplies two n-square matrices and returns a matrix containing the result. 
-*  The assumption is that the dimensions of the function are already correct
 */
 int ** multiply(int **A, int **B, int a_rows, int a_cols, int b_rows, int b_cols){
     // Creating the matrix C
@@ -148,7 +146,6 @@ int ** multiply(int **A, int **B, int a_rows, int a_cols, int b_rows, int b_cols
 }
 
 /* This function takes in a matrix and some row indices and returns a slice of columns. 
-    The indices are used in an inclusive manner
 */
 int ** slice_rows(int **A, int dimension, int start, int end){
     // Creating the matrix to be returned.
@@ -166,7 +163,7 @@ int ** slice_rows(int **A, int dimension, int start, int end){
     return temp;
 }
 
-/* This function prints a vector. Used mainly for debugging purposes */
+/* This function prints a vector. */
 void printvector(int *vec, int l){
     for(int i = 0; i < l; i++){
         printf("%d ", vec[i]);
@@ -187,7 +184,7 @@ int * matrix_to_vec(int **mat, int rows, int cols){
     return temp;
 }
 
-/* Because columns are often going to be different, we need a special function to linearize a matrix in a way suitable for columns */
+/* Purpose is to linearize a matrix in a way suitable for columns */
 int * matrix_to_vec_col(int **mat, int rows, int cols){
     int *temp = (int *)malloc(rows * cols * sizeof(int));
     int k = 0;
@@ -200,18 +197,14 @@ int * matrix_to_vec_col(int **mat, int rows, int cols){
     return temp;
 }
 
-/* This function takes a matrix and returns an array. Becuase we linearized columns already in a way that standardizes them, we do not 
-*   to build a unique function for columns.
+/* This function takes a matrix and returns an array. 
 */
 int **mat_to_array(int *vec, int l, int rows, int cols){
-    int **temp = (int **) malloc(rows * sizeof(int *));
-    for (int i = 0; i < rows; i++) {
-        temp[i] = (int *) malloc(cols * sizeof(int));
-    }
+    int **temp = allocarray(rows, cols);
     for(int i = 0; i < l; i++){
-        int r = i / rows;
-        int c = i % rows;
-        temp[c][r] = vec[i];
+        int r = i / cols;
+        int c = i % cols;
+        temp[r][c] = vec[i];
     }
     return temp;
 }
@@ -238,6 +231,7 @@ int * allocvector(int vec_size){
     return temp;
 }
 
+/* Sequential code */
 void matrixMultiplicationNaive(int **matrix_a,int **matrix_b,int **matrix_c, int size){
     int i,j,k;
     for(i = 0; i < size; i++){
@@ -278,10 +272,10 @@ int main (int argc, char *argv[]){
 
     numworkers = numprocs - 1;
     int block_size = n / (int)root_p; // The sizes of the blocks that will be sent
-    int buffer_size = block_size * n; // The size of the buffer that will be sent
+    int buffersize = block_size * n; // The size of the buffer that will be sent
 
 
-   // The code for the master process.
+   // TMaster Process
    if (my_rank == master)
    {
       printf("mpi_mm has started with %d tasks.\n",numprocs);
@@ -294,14 +288,14 @@ int main (int argc, char *argv[]){
       
       //Generating C
       c = create_initialize(n, 0);
-      double begin = MPI_Wtime();
+       clock_t begin_time = clock();
       matrixMultiplicationNaive(a, b, c, n);
-      double end = MPI_Wtime();
-      printf("Done in %f seconds for sequential code.\n", end - begin);
+       clock_t end_time = clock();
+      printf("Done in %f seconds for sequential code.\n", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
 
 
       /* Measure start time */
-      double start = MPI_Wtime();
+      double start_time = MPI_Wtime();
 
       /* Send matrix data to the worker tasks */
       message_type = master_message;
@@ -315,41 +309,43 @@ int main (int argc, char *argv[]){
         //printf("Sending to process, %d\n", dest);
         //print_nonsquare(subRows, block_size, n);
         int *subRowsFinal = matrix_to_vec(subRows, block_size, n);
-        MPI_Send(&(subRowsFinal[0]), buffer_size, MPI_INT, dest, 10, MPI_COMM_WORLD);
+        MPI_Send(&(subRowsFinal[0]), buffersize, MPI_INT, dest, 10, MPI_COMM_WORLD);
         
         //Sending the columns of matrix B as needed.
         int **subCols = slice_cols(b, n, col, col + block_size - 1);
         //printf("Sending to process, %d\n", dest);
         //print_nonsquare(subCols, n, block_size);
-        int *subColsFinal = matrix_to_vec_col(subCols, n, block_size);
-        MPI_Send(&(subColsFinal[0]), buffer_size, MPI_INT, dest, 4, MPI_COMM_WORLD);
+        int *subColsFinal = matrix_to_vec(subCols, n, block_size);
+        MPI_Send(&(subColsFinal[0]), buffersize, MPI_INT, dest, 4, MPI_COMM_WORLD);
       }
 
 
-      /* Receive results from worker tasks */
+      /* results from worker tasks */
       message_type = slave_message;
       for (i=1; i<=numworkers; i++){
-         int incoming = i;
+         int task = i;
          int *y = allocvector(block_size * block_size); 
-         MPI_Recv(&(y[0]), block_size * block_size, MPI_INT, incoming, 5, MPI_COMM_WORLD, &status);
+         MPI_Recv(&(y[0]), block_size * block_size, MPI_INT, task, 5, MPI_COMM_WORLD, &status);
          struct start_location p_start;
-         MPI_Recv(&p_start, 1, position_type, incoming, 15, MPI_COMM_WORLD, &status);
+         MPI_Recv(&p_start, 1, position_type, task, 15, MPI_COMM_WORLD, &status);
          printvector(y, block_size * block_size);
-         printf("From process %d: Which starts at row index %d and column index %d.\n", i, p_start.x_start, p_start.y_start);
+         printf("Receive task from process %d: Which starts at row index %d and column index %d.\n", i, p_start.x_start, p_start.y_start);
 
          //Putting the various answers in their appropriate positions in matrix C.
-         int **mini_res = mat_to_array(y, block_size * block_size, block_size, block_size);
+         int **temp = mat_to_array(y, block_size * block_size, block_size, block_size);
          for(int m = 0; m < block_size; m++){
              for(int n = 0; n < block_size; n++){
-                 c[p_start.x_start + m][p_start.y_start + n] = mini_res[m][n];
+                 c[p_start.x_start + m][p_start.y_start + n] = temp[m][n];
              }
          }
       }
 
 
       /* Measure finish time */
-      double finish = MPI_Wtime();
-      printf("Done in %f seconds.\n", finish - start);
+      double finish_time = MPI_Wtime();
+      printf("Matrix C");
+      print_matrix(c, n, 'C');
+      printf("Done in %f seconds.\n", finish_time - start_time);
    }
 
 
@@ -363,14 +359,14 @@ int main (int argc, char *argv[]){
       int colp = ((my_rank - 1) % (int)root_p) * block_size;
 
       // Recive the rows in a vector format, and then converting them back to a normal array to ease multiplication
-      int *subRowsFinal = allocvector(buffer_size);
-      MPI_Recv(&(subRowsFinal[0]), buffer_size, MPI_INT, master, 10, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      int **subRows = mat_to_array(subRowsFinal, buffer_size, block_size, n);
+      int *subRowsFinal = allocvector(buffersize);
+      MPI_Recv(&(subRowsFinal[0]), buffersize, MPI_INT, master, 10, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      int **subRows = mat_to_array(subRowsFinal, buffersize, block_size, n);
 
       // Revieve the cols in vector format, and then converting them back to a normal array form to ease multiplication
-      int *subColsFinal = allocvector(buffer_size);;
-      MPI_Recv(&(subColsFinal[0]), buffer_size, MPI_INT, master, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      int **subCols = mat_to_array(subColsFinal, buffer_size, n, block_size);
+      int *subColsFinal = allocvector(buffersize);;
+      MPI_Recv(&(subColsFinal[0]), buffersize, MPI_INT, master, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      int **subCols = mat_to_array(subColsFinal, buffersize, n, block_size);
 
       // multiplying the answers gotten from the rows and cols and linearizing for sending to the master
       int **tempAns = multiply(subRows, subCols, block_size, n, n, block_size);
